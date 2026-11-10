@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroHogar · Control de Stock e Inventario</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230b3d91'/><path d='M22 50 L50 24 L78 50 L78 82 L22 82 Z' fill='%23fff'/><path d='M22 50 L50 24 L78 50' fill='none' stroke='%23ffc857' stroke-width='4'/><path d='M52 36 L44 52 L50 52 L48 64 L58 48 L52 48 Z' fill='%23ffc857'/></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --azul: #0d3a72;
+    --azul-medio: #14539e;
+    --azul-suave: #e9f0fa;
+    --gris-fondo: #f7f8fa;
+    --gris-linea: #dfe4ec;
+    --texto: #232a35;
+    --texto-suave: #5c6573;
+    --verde: #1a7f4e;
+    --rojo: #b73333;
+    --amarillo: #b98314;
+    --dorado: #d4a017;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--texto);
+    background: var(--gris-fondo);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; color: var(--azul); }
+  a { color: var(--azul-medio); }
+
+  /* ---------- TOPBAR decorado ---------- */
+  .topbar {
+    background: var(--azul);
+    color: #dfe8f5;
+    font-size: 12.5px;
+    padding: 7px 0;
+    text-align: center;
+    letter-spacing: .3px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 2px solid var(--dorado);
+  }
+  .topbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 8% 50%, rgba(212,160,23,.35) 1.2px, transparent 1.2px),
+      radial-gradient(circle at 92% 50%, rgba(212,160,23,.35) 1.2px, transparent 1.2px),
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,.08) 1px, transparent 1px);
+    background-size: 20px 20px, 20px 20px, 30px 30px;
+    pointer-events: none;
+  }
+  .topbar > * { position: relative; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--gris-linea);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(13,58,114,.04);
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .logo svg { width: 44px; height: 44px; }
+  .logo-info { display: flex; flex-direction: column; line-height: 1.15; }
+  .logo-info .nombre { font-family: Georgia, serif; font-weight: 700; font-size: 19px; color: var(--azul); letter-spacing: .5px; }
+  .logo-info .lema { font-size: 11px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 1.6px; }
+
+  nav { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+  nav a {
+    color: var(--texto-suave);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  nav a:hover { color: var(--azul); border-bottom-color: var(--dorado); }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    background: var(--azul-suave);
+    border-bottom: 1px solid var(--gris-linea);
+    padding: 56px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Textura de puntos sutil en el hero */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(13,58,114,.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
+  .hero-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .etiqueta {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--azul-medio);
+    background: #fff;
+    padding: 5px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--gris-linea);
+    border-left: 3px solid var(--dorado);
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .hero h1 {
+    font-size: 34px;
+    line-height: 1.25;
+    margin-bottom: 14px;
+    position: relative;
+    padding-bottom: 16px;
+  }
+  .hero h1::after {
+    content: '◆';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    color: var(--dorado);
+    font-size: 12px;
+    letter-spacing: 6px;
+  }
+  .hero p { color: var(--texto-suave); font-size: 16.5px; margin-bottom: 26px; max-width: 480px; }
+
+  .hero-ilustracion {
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow:
+      0 4px 20px rgba(13,58,114,.06),
+      inset 0 0 0 4px var(--azul-suave);
+    position: relative;
+  }
+  .hero-ilustracion::after {
+    content: '';
+    position: absolute;
+    top: 8px; right: 8px; bottom: 8px; left: 8px;
+    border: 1px dashed rgba(212,160,23,.35);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .hero-ilustracion svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+
+  .boton-principal {
+    display: inline-block;
+    background: var(--azul);
+    color: #fff;
+    padding: 11px 26px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 600;
+    border: 1px solid var(--azul);
+    box-shadow: 0 3px 0 var(--dorado);
+    transition: transform .15s, box-shadow .2s, background .2s;
+  }
+  .boton-principal:hover {
+    background: var(--azul-medio);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 var(--dorado);
+  }
+
+  /* ---------- CONTENEDOR ---------- */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 56px 0; position: relative; }
+  section.alt { background: #fff; border-top: 1px solid var(--gris-linea); border-bottom: 1px solid var(--gris-linea); }
+
+  /* Divisor decorativo entre secciones */
+  section:not(.alt) + section.alt::before,
+  section.alt + section:not(.alt)::before {
+    content: '';
+    display: none;
+  }
+
+  .titulo-seccion { margin-bottom: 38px; position: relative; }
+  .titulo-seccion h2 { font-size: 25px; margin-bottom: 6px; display: inline-block; }
+  .titulo-seccion .linea {
+    width: 60px;
+    height: 3px;
+    background: var(--dorado);
+    border-radius: 2px;
+    margin-top: 12px;
+    position: relative;
+  }
+  .titulo-seccion .linea::before,
+  .titulo-seccion .linea::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 4px; height: 4px;
+    background: var(--azul);
+    border-radius: 50%;
+    transform: translateY(-50%);
+  }
+  .titulo-seccion .linea::before { left: -12px; }
+  .titulo-seccion .linea::after { left: -20px; background: var(--dorado); opacity: .6; }
+  .titulo-seccion p { color: var(--texto-suave); font-size: 15px; margin-top: 16px; max-width: 640px; }
+
+  /* ---------- CONCEPTOS ---------- */
+  .tarjetas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .tarjeta {
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-radius: 6px;
+    padding: 22px 22px 24px;
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Acento dorado en la esquina superior derecha */
+  .tarjeta::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, transparent 50%, rgba(212,160,23,.12) 50%);
+    pointer-events: none;
+  }
+  .tarjeta::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--dorado);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform .3s;
+  }
+  .tarjeta:hover {
+    border-color: #b9c5d6;
+    box-shadow: 0 6px 18px rgba(13,58,114,.08);
+    transform: translateY(-2px);
+  }
+  .tarjeta:hover::after { transform: scaleY(1); }
+  .tarjeta .num {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dorado);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    display: inline-block;
+    position: relative;
+    padding-left: 14px;
+  }
+  .tarjeta .num::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 8px; height: 1px;
+    background: var(--dorado);
+    transform: translateY(-50%);
+  }
+  .tarjeta h3 { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 16px; color: var(--azul); margin-bottom: 8px; }
+  .tarjeta p { font-size: 14.5px; color: var(--texto-suave); line-height: 1.6; }
+
+  /* ---------- PROCESO ---------- */
+  .proceso-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 22px;
+  }
+  .paso {
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-radius: 8px;
+    padding: 0 0 22px;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .paso:hover {
+    border-color: #b9c5d6;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(13,58,114,.1);
+  }
+
+  .paso-imagen {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(212,160,23,.08) 0%, transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(20,83,158,.08) 0%, transparent 45%),
+      var(--azul-suave);
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--gris-linea);
+    min-height: 170px;
+    position: relative;
+  }
+  .paso-imagen::after {
+    content: '◆';
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    color: var(--dorado);
+    font-size: 10px;
+    padding: 0 8px;
+    z-index: 1;
+  }
+  .paso-imagen svg { width: 100%; max-width: 240px; height: auto; display: block; }
+
+  .paso-contenido { padding: 22px 22px 0; flex: 1; }
+  .paso-numero {
+    display: inline-block;
+    font-family: Georgia, serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--azul);
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--dorado);
+  }
+  .paso h3 {
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    color: var(--azul);
+    margin-bottom: 8px;
+  }
+  .paso p { font-size: 14px; color: var(--texto-suave); line-height: 1.6; }
+
+  /* ---------- SIMULADOR ---------- */
+  .panel {
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 3px 14px rgba(13,58,114,.05);
+    position: relative;
+  }
+  .panel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--azul), var(--azul-medio), var(--dorado));
+    pointer-events: none;
+  }
+  .panel-head {
+    background: var(--azul);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .panel-head h3 {
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    color: #fff;
+    font-weight: 600;
+    padding-left: 12px;
+    border-left: 3px solid var(--dorado);
+  }
+  .panel-head span { font-size: 12.5px; color: #b8cbe6; }
+  .panel-body { padding: 24px; }
+
+  .form {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px dashed var(--gris-linea);
+  }
+  .campo label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--texto-suave);
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .campo select, .campo input {
+    width: 100%;
+    padding: 9px 11px;
+    font-family: inherit;
+    font-size: 14.5px;
+    border: 1px solid #c9d2df;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--texto);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .campo select:focus, .campo input:focus {
+    outline: none;
+    border-color: var(--azul-medio);
+    box-shadow: 0 0 0 3px rgba(20,83,158,.1);
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-entrada { background: var(--azul); color: #fff; border-color: var(--azul); }
+  .btn-entrada:hover { background: var(--azul-medio); border-color: var(--azul-medio); }
+  .btn-salida { background: #fff; color: var(--rojo); border-color: var(--rojo); }
+  .btn-salida:hover { background: var(--rojo); color: #fff; }
+
+  /* ---------- TABLA ---------- */
+  .tabla-wrap { overflow-x: auto; border: 1px solid var(--gris-linea); border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  th {
+    text-align: left;
+    background: #f0f3f8;
+    color: var(--azul);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--gris-linea);
+  }
+  th:first-child { border-left: 3px solid var(--dorado); }
+  td { padding: 12px 16px; font-size: 14.5px; border-bottom: 1px solid #eef1f6; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfd; }
+
+  .estado { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+  .estado.ok { background: #e4f3ea; color: var(--verde); }
+  .estado.bajo { background: #fdf3dd; color: var(--amarillo); }
+  .estado.agotado { background: #fae4e4; color: var(--rojo); }
+
+  .stock-num { font-weight: 700; color: var(--azul); }
+
+  /* ---------- RESUMEN ---------- */
+  .resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .resumen-item {
+    background: #f5f8fc;
+    border: 1px solid var(--gris-linea);
+    border-top: 3px solid var(--dorado);
+    border-radius: 4px;
+    padding: 16px;
+    text-align: center;
+    transition: transform .15s;
+  }
+  .resumen-item:hover { transform: translateY(-2px); }
+  .resumen-item .num { font-family: Georgia, serif; font-size: 26px; font-weight: 700; color: var(--azul); line-height: 1.1; }
+  .resumen-item .lbl { font-size: 11.5px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .7px; margin-top: 4px; font-weight: 500; }
+
+  /* ---------- REORDEN ---------- */
+  .reorden {
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-left: 4px solid var(--dorado);
+    border-radius: 4px;
+    padding: 22px 26px;
+    position: relative;
+    overflow: hidden;
+  }
+  .reorden::after {
+    content: '';
+    position: absolute;
+    top: 10px; right: 14px;
+    font-family: Georgia, serif;
+    font-size: 56px;
+    color: rgba(212,160,23,.08);
+    line-height: 1;
+    content: '“';
+    pointer-events: none;
+  }
+  .reorden h3 { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 16px; margin-bottom: 8px; position: relative; }
+  .reorden p { color: var(--texto-suave); font-size: 14.5px; line-height: 1.65; position: relative; }
+
+  /* ---------- EQUIPO ---------- */
+  .equipo-intro {
+    color: var(--texto-suave);
+    font-size: 15px;
+    max-width: 720px;
+    margin-bottom: 30px;
+    padding-left: 16px;
+    border-left: 3px solid var(--dorado);
+  }
+  .equipo-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 640px;
+  }
+  .integrante {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: #fff;
+    border: 1px solid var(--gris-linea);
+    border-radius: 6px;
+    padding: 16px 22px;
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+    position: relative;
+  }
+  .integrante::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 2px;
+    background: var(--dorado);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .integrante:hover {
+    border-color: #b9c5d6;
+    box-shadow: 0 4px 14px rgba(13,58,114,.06);
+    transform: translateX(3px);
+  }
+  .integrante:hover::before { opacity: 1; }
+  .avatar {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--azul-suave);
+    color: var(--azul);
+    font-family: Georgia, serif;
+    font-size: 19px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--dorado);
+    box-shadow: 0 0 0 3px #fff, 0 0 0 4px rgba(212,160,23,.25);
+    letter-spacing: .5px;
+  }
+  .integrante .datos { display: flex; flex-direction: column; line-height: 1.35; }
+  .integrante .datos h3 {
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    font-size: 15.5px;
+    color: var(--azul);
+    margin: 0;
+    font-weight: 600;
+  }
+  .integrante .datos .cargo {
+    font-size: 12px;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* ---------- FOOTER decorado ---------- */
+  footer {
+    background: var(--azul);
+    color: #b8cbe6;
+    padding: 32px 24px 26px;
+    text-align: center;
+    font-size: 13px;
+    position: relative;
+    overflow: hidden;
+  }
+  footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 3px;
+    background: var(--dorado);
+    border-radius: 0 0 3px 3px;
+  }
+  footer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+  footer > * { position: relative; z-index: 1; }
+  footer .foot-logo {
+    width: 40px; height: 40px;
+    margin: 0 auto 14px;
+    display: block;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+  }
+  footer strong { color: #fff; display: block; margin-bottom: 4px; font-size: 14px; letter-spacing: .5px; }
+  footer .foot-sep {
+    display: inline-block;
+    margin: 10px 0;
+    color: var(--dorado);
+    font-size: 10px;
+    letter-spacing: 6px;
+  }
+  footer .foot-links { font-size: 12px; color: #93a9c6; margin-top: 4px; }
+
+  /* ---------- TOAST ---------- */
+  .toast {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    background: var(--azul);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    z-index: 999;
+    max-width: 320px;
+    border-left: 4px solid var(--dorado);
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--rojo); border-left-color: #ffc7c7; }
+  .toast.success { background: var(--verde); border-left-color: #a8e0b8; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 880px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 30px; text-align: center; }
+    .hero p { margin-left: auto; margin-right: auto; }
+    .hero h1::after { left: 50%; transform: translateX(-50%); }
+  }
+  @media (max-width: 720px) {
+    header { padding: 12px 18px; flex-direction: column; gap: 10px; }
+    nav { gap: 14px; justify-content: center; }
+    nav a { font-size: 13px; }
+    .hero h1 { font-size: 26px; }
+    .form { grid-template-columns: 1fr; padding-bottom: 18px; }
+    .panel-body { padding: 18px; }
+    .topbar { font-size: 11.5px; }
+    .integrante { padding: 14px 16px; }
+    .avatar { width: 48px; height: 48px; font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  Proyecto académico · Segunda etapa · Gestión de Compras y Abastecimiento
+</div>
+
+<header>
+  <a href="#" class="logo">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Logotipo ElectroHogar">
+      <rect x="3" y="3" width="94" height="94" rx="14" fill="#0d3a72"/>
+      <path d="M22 50 L50 24 L78 50 L78 80 L22 80 Z" fill="#ffffff"/>
+      <path d="M22 50 L50 24 L78 50" fill="none" stroke="#d4a017" stroke-width="3.5" stroke-linejoin="round"/>
+      <rect x="43" y="58" width="14" height="22" rx="1.5" fill="#0d3a72"/>
+      <circle cx="54" cy="70" r="1.4" fill="#d4a017"/>
+      <path d="M52 36 L44 52 L50 52 L48 63 L58 48 L52 48 Z" fill="#d4a017"/>
+    </svg>
+    <div class="logo-info">
+      <span class="nombre">ELECTROHOGAR</span>
+      <span class="lema">Corporación Comercial</span>
+    </div>
+  </a>
+  <nav>
+    <a href="#conceptos">Conceptos</a>
+    <a href="#proceso">Proceso</a>
+    <a href="#simulador">Simulador</a>
+    <a href="#reorden">Reorden</a>
+    <a href="#equipo">Equipo</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-texto">
+      <span class="etiqueta">Corporación Comercial, S.A. de C.V.</span>
+      <h1>Control de stock e inventario</h1>
+      <p>Herramientas sencillas para saber qué electrodomésticos tenemos disponibles, en qué cantidades y cuándo conviene reponerlos.</p>
+      <a href="#simulador" class="boton-principal">Probar el simulador</a>
+    </div>
+
+    <div class="hero-ilustracion" aria-hidden="true">
+      <svg viewBox="0 0 440 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="440" height="300" fill="#f5f8fc"/>
+
+        <rect x="90" y="12" width="260" height="28" fill="#0d3a72" rx="4"/>
+        <text x="220" y="31" font-size="13" font-weight="700" fill="#fff" font-family="Georgia" text-anchor="middle" letter-spacing="1">DEPÓSITO ELECTROHOGAR</text>
+
+        <rect x="20" y="55" width="400" height="225" fill="#fff" stroke="#0d3a72" stroke-width="2.5" rx="4"/>
+        <line x1="20" y1="130" x2="420" y2="130" stroke="#0d3a72" stroke-width="2"/>
+        <line x1="20" y1="205" x2="420" y2="205" stroke="#0d3a72" stroke-width="2"/>
+
+        <g transform="translate(45, 78)">
+          <rect x="0" y="0" width="42" height="48" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="3"/>
+          <rect x="0" y="0" width="42" height="10" fill="#14539e"/>
+          <circle cx="6" cy="5" r="1.5" fill="#fff"/>
+          <circle cx="12" cy="5" r="1.5" fill="#fff"/>
+          <circle cx="21" cy="30" r="13" fill="#e9f0fa" stroke="#0d3a72" stroke-width="2"/>
+          <circle cx="21" cy="30" r="7" fill="#fff"/>
+        </g>
+        <text x="66" y="142" font-size="9" font-family="-apple-system" font-weight="600" fill="#5c6573" text-anchor="middle">LAVADORAS</text>
+
+        <g transform="translate(120, 78)">
+          <rect x="0" y="0" width="34" height="48" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <line x1="0" y1="16" x2="34" y2="16" stroke="#0d3a72" stroke-width="1.5"/>
+          <line x1="28" y1="4" x2="28" y2="13" stroke="#0d3a72" stroke-width="2"/>
+          <line x1="28" y1="20" x2="28" y2="42" stroke="#0d3a72" stroke-width="2"/>
+        </g>
+        <text x="137" y="142" font-size="8" font-family="-apple-system" font-weight="600" fill="#5c6573" text-anchor="middle">REFRIG.</text>
+
+        <g transform="translate(185, 88)">
+          <rect x="0" y="0" width="52" height="34" fill="#14539e" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <rect x="4" y="4" width="44" height="26" fill="#e9f0fa"/>
+          <rect x="20" y="34" width="12" height="4" fill="#0d3a72"/>
+          <rect x="14" y="38" width="24" height="2" fill="#0d3a72"/>
+        </g>
+        <text x="211" y="142" font-size="9" font-family="-apple-system" font-weight="600" fill="#5c6573" text-anchor="middle">TELEVISORES</text>
+
+        <g transform="translate(265, 92)">
+          <rect x="0" y="0" width="52" height="32" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <rect x="4" y="4" width="32" height="24" fill="#14539e"/>
+          <circle cx="12" cy="16" r="3" fill="#d4a017"/>
+          <rect x="40" y="6" width="8" height="20" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1"/>
+        </g>
+        <text x="291" y="142" font-size="9" font-family="-apple-system" font-weight="600" fill="#5c6573" text-anchor="middle">MICROONDAS</text>
+
+        <g transform="translate(345, 80)">
+          <rect x="4" y="0" width="20" height="12" fill="#d4a017" stroke="#0d3a72" stroke-width="1.5" rx="1"/>
+          <path d="M6 12 L4 30 L24 30 L22 12 Z" fill="#fff" stroke="#0d3a72" stroke-width="1.5"/>
+          <rect x="0" y="30" width="28" height="14" fill="#14539e" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+          <circle cx="22" cy="37" r="2" fill="#d4a017"/>
+        </g>
+        <text x="359" y="142" font-size="9" font-family="-apple-system" font-weight="600" fill="#5c6573" text-anchor="middle">LICUADORAS</text>
+
+        <g transform="translate(45, 150)">
+          <rect x="0" y="0" width="42" height="48" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="3"/>
+          <rect x="0" y="0" width="42" height="10" fill="#14539e"/>
+          <circle cx="6" cy="5" r="1.5" fill="#fff"/>
+          <circle cx="12" cy="5" r="1.5" fill="#fff"/>
+          <circle cx="21" cy="30" r="13" fill="#e9f0fa" stroke="#0d3a72" stroke-width="2"/>
+          <circle cx="21" cy="30" r="7" fill="#fff"/>
+        </g>
+        <g transform="translate(120, 150)">
+          <rect x="0" y="0" width="34" height="48" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <line x1="0" y1="16" x2="34" y2="16" stroke="#0d3a72" stroke-width="1.5"/>
+          <line x1="28" y1="4" x2="28" y2="13" stroke="#0d3a72" stroke-width="2"/>
+          <line x1="28" y1="20" x2="28" y2="42" stroke="#0d3a72" stroke-width="2"/>
+        </g>
+        <g transform="translate(185, 160)">
+          <rect x="0" y="0" width="52" height="34" fill="#14539e" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <rect x="4" y="4" width="44" height="26" fill="#e9f0fa"/>
+          <rect x="20" y="34" width="12" height="4" fill="#0d3a72"/>
+          <rect x="14" y="38" width="24" height="2" fill="#0d3a72"/>
+        </g>
+        <g transform="translate(265, 164)">
+          <rect x="0" y="0" width="52" height="32" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="2"/>
+          <rect x="4" y="4" width="32" height="24" fill="#14539e"/>
+          <circle cx="12" cy="16" r="3" fill="#d4a017"/>
+          <rect x="40" y="6" width="8" height="20" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1"/>
+        </g>
+        <g transform="translate(345, 152)">
+          <rect x="4" y="0" width="20" height="12" fill="#d4a017" stroke="#0d3a72" stroke-width="1.5" rx="1"/>
+          <path d="M6 12 L4 30 L24 30 L22 12 Z" fill="#fff" stroke="#0d3a72" stroke-width="1.5"/>
+          <rect x="0" y="30" width="28" height="14" fill="#14539e" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+          <circle cx="22" cy="37" r="2" fill="#d4a017"/>
+        </g>
+
+        <g transform="translate(40, 222)">
+          <rect x="0" y="0" width="360" height="42" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="4"/>
+          <text x="18" y="20" font-size="11" font-weight="700" fill="#0d3a72" font-family="Georgia">INVENTARIO</text>
+          <text x="18" y="34" font-size="9" fill="#5c6573" font-family="-apple-system">Lav. 10 · Ref. 8 · TV 8 · Lic. 7 · Micro. 7</text>
+          <circle cx="330" cy="21" r="14" fill="#1a7f4e"/>
+          <path d="M322 21 L328 27 L339 16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- Conceptos -->
+<section id="conceptos">
+  <div class="container">
+    <div class="titulo-seccion">
+      <h2>Conceptos básicos</h2>
+      <div class="linea"></div>
+      <p>Antes de operar el inventario conviene dejar claros algunos términos que usamos a diario en ElectroHogar.</p>
+    </div>
+
+    <div class="tarjetas">
+      <div class="tarjeta">
+        <div class="num">01</div>
+        <h3>Stock</h3>
+        <p>Cantidad de productos disponibles para atender a los clientes o para el desarrollo normal de la actividad comercial.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="num">02</div>
+        <h3>Inventario</h3>
+        <p>Registro organizado de productos y cantidades. Permite saber qué tenemos, cuánto hay y qué hace falta reponer.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="num">03</div>
+        <h3>Entradas y salidas</h3>
+        <p>Las entradas son ingresos por compras o reposiciones. Las salidas son unidades que dejan de estar disponibles por ventas.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="num">04</div>
+        <h3>Riesgos del mal control</h3>
+        <p>Quedarse sin mercancía (se pierden ventas) o acumular demasiada (dinero inmovilizado y gastos de almacenamiento).</p>
+      </div>
+      <div class="tarjeta">
+        <div class="num">05</div>
+        <h3>Punto de reorden</h3>
+        <p>Nivel mínimo de existencias que indica cuándo conviene pedir de nuevo para no quedarnos sin producto.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="num">06</div>
+        <h3>Herramientas</h3>
+        <p>Registros manuales, planillas de cálculo o sistemas digitales. Lo importante es mantener el dato actualizado.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Proceso -->
+<section id="proceso" class="alt">
+  <div class="container">
+    <div class="titulo-seccion">
+      <h2>Proceso de stock paso a paso</h2>
+      <div class="linea"></div>
+      <p>Este recorrido sigue el ejemplo que aparece en el documento de la empresa: las licuadoras que entran, las que se venden y las lavadoras que llegan a su punto de reorden.</p>
+    </div>
+
+    <div class="proceso-grid">
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <rect x="20" y="60" width="120" height="55" fill="#14539e" rx="3"/>
+            <rect x="140" y="78" width="55" height="37" fill="#0d3a72" rx="3"/>
+            <rect x="148" y="88" width="22" height="16" fill="#e9f0fa"/>
+            <circle cx="52" cy="118" r="13" fill="#0d3a72"/>
+            <circle cx="52" cy="118" r="5" fill="#fff"/>
+            <circle cx="168" cy="118" r="13" fill="#0d3a72"/>
+            <circle cx="168" cy="118" r="5" fill="#fff"/>
+            <g transform="translate(28, 40)">
+              <rect x="0" y="0" width="30" height="20" fill="#d4a017" stroke="#0d3a72" stroke-width="1.5"/>
+              <text x="15" y="14" font-size="9" fill="#0d3a72" font-family="-apple-system" font-weight="700" text-anchor="middle">x4</text>
+            </g>
+            <g transform="translate(64, 40)">
+              <rect x="0" y="0" width="30" height="20" fill="#d4a017" stroke="#0d3a72" stroke-width="1.5"/>
+              <text x="15" y="14" font-size="9" fill="#0d3a72" font-family="-apple-system" font-weight="700" text-anchor="middle">x4</text>
+            </g>
+            <g transform="translate(100, 44)">
+              <rect x="0" y="0" width="30" height="16" fill="#d4a017" stroke="#0d3a72" stroke-width="1.5"/>
+              <text x="15" y="12" font-size="9" fill="#0d3a72" font-family="-apple-system" font-weight="700" text-anchor="middle">x2</text>
+            </g>
+            <rect x="150" y="26" width="80" height="30" fill="#fff" stroke="#1a7f4e" stroke-width="2" rx="4"/>
+            <text x="190" y="40" font-size="10" fill="#5c6573" font-family="-apple-system" font-weight="600" text-anchor="middle">LLEGAN</text>
+            <text x="190" y="52" font-size="12" fill="#1a7f4e" font-family="Georgia" font-weight="700" text-anchor="middle">+10 licuadoras</text>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 01</span>
+          <h3>Recepción de mercancía</h3>
+          <p>Según el ejemplo del documento: la empresa inicia la semana con <strong>20 licuadoras</strong> y recibe una compra de <strong>10 unidades</strong>. Primero se verifica que lleguen completas y en buen estado.</p>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <rect x="30" y="20" width="180" height="120" fill="#fff" stroke="#0d3a72" stroke-width="2.5" rx="4"/>
+            <rect x="30" y="20" width="180" height="20" fill="#14539e"/>
+            <text x="120" y="34" font-size="9" fill="#fff" font-family="-apple-system" font-weight="700" text-anchor="middle" letter-spacing="1">REGISTRO DE ENTRADA</text>
+            <line x1="30" y1="58" x2="210" y2="58" stroke="#dfe4ec" stroke-width="1"/>
+            <line x1="30" y1="88" x2="210" y2="88" stroke="#dfe4ec" stroke-width="1"/>
+            <line x1="30" y1="118" x2="210" y2="118" stroke="#dfe4ec" stroke-width="1"/>
+            <text x="42" y="50" font-size="9" fill="#5c6573" font-family="-apple-system" font-weight="600">Existencias iniciales</text>
+            <text x="196" y="50" font-size="11" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="end">20</text>
+            <text x="42" y="80" font-size="9" fill="#5c6573" font-family="-apple-system" font-weight="600">Compra recibida</text>
+            <text x="196" y="80" font-size="11" fill="#1a7f4e" font-family="Georgia" font-weight="700" text-anchor="end">+ 10</text>
+            <text x="42" y="110" font-size="9" fill="#5c6573" font-family="-apple-system" font-weight="600">Nuevo total</text>
+            <text x="196" y="110" font-size="13" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="end">30</text>
+            <text x="120" y="135" font-size="9" fill="#5c6573" font-family="-apple-system" text-anchor="middle">licuadoras disponibles</text>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 02</span>
+          <h3>Registro de entradas</h3>
+          <p>La entrada se anota en el inventario. Las 20 iniciales más las 10 recibidas dan <strong>30 licuadoras</strong> disponibles antes de las ventas. El dato queda actualizado.</p>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <rect x="20" y="30" width="200" height="115" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="3"/>
+            <line x1="20" y1="73" x2="220" y2="73" stroke="#0d3a72" stroke-width="1.5"/>
+            <line x1="20" y1="108" x2="220" y2="108" stroke="#0d3a72" stroke-width="1.5"/>
+            <g transform="translate(30, 38)">
+              <rect x="0" y="0" width="28" height="32" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="7" fill="#14539e"/>
+              <circle cx="14" cy="20" r="8" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(78, 38)">
+              <rect x="0" y="0" width="22" height="32" fill="#fff" stroke="#0d3a72" stroke-width="1.5"/>
+              <line x1="0" y1="10" x2="22" y2="10" stroke="#0d3a72" stroke-width="1"/>
+            </g>
+            <g transform="translate(120, 42)">
+              <rect x="0" y="0" width="36" height="24" fill="#14539e" stroke="#0d3a72" stroke-width="1.5"/>
+              <rect x="3" y="3" width="30" height="18" fill="#e9f0fa"/>
+              <rect x="14" y="24" width="8" height="4" fill="#0d3a72"/>
+            </g>
+            <g transform="translate(175, 42)">
+              <rect x="0" y="0" width="36" height="22" fill="#fff" stroke="#0d3a72" stroke-width="1.5"/>
+              <rect x="3" y="3" width="22" height="16" fill="#14539e"/>
+              <circle cx="8" cy="11" r="2" fill="#d4a017"/>
+            </g>
+            <g transform="translate(30, 78)">
+              <rect x="3" y="0" width="14" height="8" fill="#d4a017" stroke="#0d3a72" stroke-width="1"/>
+              <path d="M4 8 L2 20 L18 20 L16 8 Z" fill="#fff" stroke="#0d3a72" stroke-width="1"/>
+              <rect x="0" y="20" width="20" height="10" fill="#14539e" stroke="#0d3a72" stroke-width="1"/>
+            </g>
+            <g transform="translate(60, 78)">
+              <rect x="3" y="0" width="14" height="8" fill="#d4a017" stroke="#0d3a72" stroke-width="1"/>
+              <path d="M4 8 L2 20 L18 20 L16 8 Z" fill="#fff" stroke="#0d3a72" stroke-width="1"/>
+              <rect x="0" y="20" width="20" height="10" fill="#14539e" stroke="#0d3a72" stroke-width="1"/>
+            </g>
+            <g transform="translate(90, 78)">
+              <rect x="3" y="0" width="14" height="8" fill="#d4a017" stroke="#0d3a72" stroke-width="1"/>
+              <path d="M4 8 L2 20 L18 20 L16 8 Z" fill="#fff" stroke="#0d3a72" stroke-width="1"/>
+              <rect x="0" y="20" width="20" height="10" fill="#14539e" stroke="#0d3a72" stroke-width="1"/>
+            </g>
+            <g transform="translate(130, 80)">
+              <rect x="0" y="0" width="36" height="22" fill="#fff" stroke="#0d3a72" stroke-width="1.5"/>
+              <rect x="3" y="3" width="22" height="16" fill="#14539e"/>
+              <circle cx="8" cy="11" r="2" fill="#d4a017"/>
+            </g>
+            <text x="120" y="138" font-size="9" fill="#5c6573" font-family="-apple-system" font-weight="600" text-anchor="middle">cada producto en su lugar</text>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 03</span>
+          <h3>Almacenamiento por tipo</h3>
+          <p>Los electrodomésticos se ubican en el depósito: refrigeradoras, lavadoras, televisores, microondas y licuadoras. Cada tipo en su espacio facilita el conteo.</p>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <g transform="translate(20, 30)">
+              <rect x="0" y="0" width="90" height="100" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="3"/>
+              <rect x="0" y="0" width="90" height="20" fill="#14539e"/>
+              <text x="45" y="14" font-size="8" fill="#fff" font-family="-apple-system" font-weight="700" text-anchor="middle" letter-spacing="1">REGISTRO</text>
+              <text x="45" y="60" font-size="26" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="middle">15</text>
+              <text x="45" y="80" font-size="8" fill="#5c6573" font-family="-apple-system" text-anchor="middle">televisores</text>
+            </g>
+            <text x="122" y="90" font-size="22" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="middle">=</text>
+            <g transform="translate(130, 30)">
+              <rect x="0" y="0" width="90" height="100" fill="#fff" stroke="#1a7f4e" stroke-width="2" rx="3"/>
+              <rect x="0" y="0" width="90" height="20" fill="#1a7f4e"/>
+              <text x="45" y="14" font-size="8" fill="#fff" font-family="-apple-system" font-weight="700" text-anchor="middle" letter-spacing="1">FÍSICO</text>
+              <text x="45" y="60" font-size="26" fill="#1a7f4e" font-family="Georgia" font-weight="700" text-anchor="middle">15</text>
+              <text x="45" y="80" font-size="8" fill="#5c6573" font-family="-apple-system" text-anchor="middle">televisores</text>
+            </g>
+            <circle cx="120" cy="142" r="11" fill="#1a7f4e"/>
+            <path d="M114 142 L119 147 L127 138" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="120" y="145" font-size="8" fill="#fff" font-family="-apple-system" font-weight="700" text-anchor="middle" dominant-baseline="middle">OK</text>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 04</span>
+          <h3>Control de existencias</h3>
+          <p>Se compara lo anotado en el inventario con lo que hay físicamente. Por ejemplo, si el registro indica <strong>15 televisores</strong>, se cuentan en el depósito para confirmar que coincidan.</p>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <g transform="translate(20, 40)">
+              <rect x="0" y="0" width="42" height="28" fill="#14539e" stroke="#0d3a72" stroke-width="2"/>
+              <rect x="3" y="3" width="36" height="22" fill="#e9f0fa"/>
+              <rect x="16" y="28" width="10" height="3" fill="#0d3a72"/>
+            </g>
+            <g transform="translate(20, 78)">
+              <rect x="0" y="0" width="42" height="28" fill="#14539e" stroke="#0d3a72" stroke-width="2"/>
+              <rect x="3" y="3" width="36" height="22" fill="#e9f0fa"/>
+              <rect x="16" y="28" width="10" height="3" fill="#0d3a72"/>
+            </g>
+            <path d="M75 75 L105 75" stroke="#b73333" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M98 66 L108 75 L98 84" fill="none" stroke="#b73333" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <g transform="translate(120, 30)">
+              <rect x="0" y="0" width="90" height="105" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="2"/>
+              <text x="45" y="16" font-size="9" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="middle" letter-spacing="1">FACTURA</text>
+              <line x1="10" y1="24" x2="80" y2="24" stroke="#dfe4ec" stroke-width="1"/>
+              <line x1="10" y1="38" x2="80" y2="38" stroke="#dfe4ec" stroke-width="1"/>
+              <text x="12" y="34" font-size="7" fill="#5c6573" font-family="-apple-system">2 televisores</text>
+              <line x1="10" y1="50" x2="65" y2="50" stroke="#dfe4ec" stroke-width="1"/>
+              <text x="12" y="46" font-size="7" fill="#5c6573" font-family="-apple-system">Salida</text>
+              <text x="12" y="65" font-size="7" fill="#5c6573" font-family="-apple-system">Stock final</text>
+              <text x="78" y="65" font-size="11" fill="#0d3a72" font-family="Georgia" font-weight="700" text-anchor="end">13</text>
+              <text x="12" y="85" font-size="7" fill="#b73333" font-family="-apple-system" font-weight="600">− 2 unidades</text>
+            </g>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 05</span>
+          <h3>Salida por venta</h3>
+          <p>Cuando se venden <strong>dos televisores</strong>, se descuentan del stock y se emite la factura. El registro debe reflejar que ahora quedan <strong>13 unidades</strong> disponibles.</p>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="paso-imagen">
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="160" fill="#f5f8fc"/>
+            <rect x="20" y="40" width="200" height="70" fill="#fff" stroke="#0d3a72" stroke-width="2" rx="3"/>
+            <g transform="translate(30, 55)">
+              <rect x="0" y="0" width="28" height="42" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="8" fill="#14539e"/>
+              <circle cx="14" cy="26" r="9" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(66, 55)">
+              <rect x="0" y="0" width="28" height="42" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="8" fill="#14539e"/>
+              <circle cx="14" cy="26" r="9" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(102, 55)">
+              <rect x="0" y="0" width="28" height="42" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="8" fill="#14539e"/>
+              <circle cx="14" cy="26" r="9" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(138, 55)">
+              <rect x="0" y="0" width="28" height="42" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="8" fill="#14539e"/>
+              <circle cx="14" cy="26" r="9" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <g transform="translate(174, 55)">
+              <rect x="0" y="0" width="28" height="42" fill="#fff" stroke="#0d3a72" stroke-width="1.5" rx="2"/>
+              <rect x="0" y="0" width="28" height="8" fill="#14539e"/>
+              <circle cx="14" cy="26" r="9" fill="#e9f0fa" stroke="#0d3a72" stroke-width="1.5"/>
+            </g>
+            <rect x="70" y="14" width="100" height="22" fill="#fdf3dd" stroke="#b98314" stroke-width="2" rx="4"/>
+            <circle cx="86" cy="25" r="7" fill="#b98314"/>
+            <text x="86" y="28" font-size="9" fill="#fff" font-family="Georgia" font-weight="700" text-anchor="middle">!</text>
+            <text x="120" y="28" font-size="9" fill="#b98314" font-family="-apple-system" font-weight="700" text-anchor="middle">PUNTO DE REORDEN</text>
+            <path d="M120 122 L120 138" stroke="#1a7f4e" stroke-width="3" stroke-linecap="round"/>
+            <path d="M112 130 L120 140 L128 130" fill="none" stroke="#1a7f4e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="120" y="154" font-size="8" fill="#1a7f4e" font-family="-apple-system" font-weight="700" text-anchor="middle">REPONER</text>
+          </svg>
+        </div>
+        <div class="paso-contenido">
+          <span class="paso-numero">PASO 06</span>
+          <h3>Reposición en punto de reorden</h3>
+          <p>Tal como indica el documento: cuando quedan <strong>5 lavadoras</strong> disponibles, se genera la alerta y se contacta al proveedor. No conviene esperar a vender la última unidad.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Simulador -->
+<section id="simulador">
+  <div class="container">
+    <div class="titulo-seccion">
+      <h2>Simulador de inventario</h2>
+      <div class="linea"></div>
+      <p>Registrá una entrada o una salida y mirá cómo cambia el stock en pantalla. Los datos son de ejemplo, no corresponden a operaciones reales.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Panel de control de stock</h3>
+        <span>Datos de demostración</span>
+      </div>
+
+      <div class="panel-body">
+        <div class="form">
+          <div class="campo">
+            <label for="producto">Producto</label>
+            <select id="producto">
+              <option value="lavadora">Lavadoras</option>
+              <option value="refrigeradora">Refrigeradoras</option>
+              <option value="televisor">Televisores</option>
+              <option value="licuadora">Licuadoras</option>
+              <option value="microondas">Microondas</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="cantidad">Cantidad</label>
+            <input type="number" id="cantidad" min="1" value="1">
+          </div>
+          <div class="campo">
+            <label>&nbsp;</label>
+            <button class="btn btn-entrada" onclick="movimiento('entrada')">Registrar entrada</button>
+          </div>
+          <div class="campo">
+            <label>&nbsp;</label>
+            <button class="btn btn-salida" onclick="movimiento('salida')">Registrar salida</button>
+          </div>
+        </div>
+
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Stock actual</th>
+                <th>Punto de reorden</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-inventario"></tbody>
+          </table>
+        </div>
+
+        <div class="resumen">
+          <div class="resumen-item">
+            <div class="num" id="total-unidades">0</div>
+            <div class="lbl">Unidades en stock</div>
+          </div>
+          <div class="resumen-item">
+            <div class="num" id="total-productos">5</div>
+            <div class="lbl">Productos registrados</div>
+          </div>
+          <div class="resumen-item">
+            <div class="num" id="total-alertas" style="color: var(--rojo);">0</div>
+            <div class="lbl">Alertas de reposición</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reorden -->
+<section id="reorden" class="alt">
+  <div class="container">
+    <div class="titulo-seccion">
+      <h2>¿Cómo leer el punto de reorden?</h2>
+      <div class="linea"></div>
+    </div>
+
+    <div class="reorden">
+      <h3>Cuando el stock baja del mínimo, hay que revisar</h3>
+      <p>
+        Si un producto cae por debajo del punto de reorden definido, el sistema lo marca como <strong>bajo</strong> o <strong>agotado</strong>. Eso significa que conviene revisar si hace falta reponerlo, teniendo en cuenta cuánto tarda el proveedor en entregar el pedido. No es recomendable esperar a vender la última unidad para reaccionar: la planificación anticipada evita quedarse sin mercancía.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Equipo -->
+<section id="equipo">
+  <div class="container">
+    <div class="titulo-seccion">
+      <h2>Nosotros</h2>
+      <div class="linea"></div>
+    </div>
+
+    <p class="equipo-intro">
+      Somos un equipo de cinco estudiantes responsables de la segunda etapa del proyecto empresarial de ElectroHogar. Cada integrante participó en la investigación, el diseño de la página y la exposición de los contenidos sobre compras y abastecimiento.
+    </p>
+
+    <div class="equipo-lista">
+      <div class="integrante">
+        <div class="avatar">CF</div>
+        <div class="datos">
+          <h3>Claudio Favre</h3>
+          <span class="cargo">Integrante</span>
+        </div>
+      </div>
+
+      <div class="integrante">
+        <div class="avatar">SC</div>
+        <div class="datos">
+          <h3>Saira Campos</h3>
+          <span class="cargo">Integrante</span>
+        </div>
+      </div>
+
+      <div class="integrante">
+        <div class="avatar">AB</div>
+        <div class="datos">
+          <h3>Álvaro Batlle</h3>
+          <span class="cargo">Integrante</span>
+        </div>
+      </div>
+
+      <div class="integrante">
+        <div class="avatar">JC</div>
+        <div class="datos">
+          <h3>José Campos</h3>
+          <span class="cargo">Integrante</span>
+        </div>
+      </div>
+
+      <div class="integrante">
+        <div class="avatar">HF</div>
+        <div class="datos">
+          <h3>Hayden Fuentes</h3>
+          <span class="cargo">Integrante</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <svg class="foot-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="3" y="3" width="94" height="94" rx="14" fill="#14539e"/>
+    <path d="M22 50 L50 24 L78 50 L78 80 L22 80 Z" fill="#ffffff"/>
+    <path d="M22 50 L50 24 L78 50" fill="none" stroke="#d4a017" stroke-width="3.5" stroke-linejoin="round"/>
+    <rect x="43" y="58" width="14" height="22" rx="1.5" fill="#0d3a72"/>
+    <circle cx="54" cy="70" r="1.4" fill="#d4a017"/>
+    <path d="M52 36 L44 52 L50 52 L48 63 L58 48 L52 48 Z" fill="#d4a017"/>
+  </svg>
+  <strong>ElectroHogar Corporación Comercial, S.A. de C.V.</strong>
+  Proyecto académico · Segunda etapa: gestión de compras y abastecimiento
+  <div class="foot-sep">◆ ◆ ◆</div>
+  <div class="foot-links">Elaborado por el equipo de estudiantes · 2025</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const inventario = {
+    lavadora:      { nombre: 'Lavadoras',      stock: 10, reorden: 5 },
+    refrigeradora: { nombre: 'Refrigeradoras', stock: 8,  reorden: 4 },
+    televisor:     { nombre: 'Televisores',    stock: 8,  reorden: 3 },
+    licuadora:     { nombre: 'Licuadoras',     stock: 7,  reorden: 4 },
+    microondas:    { nombre: 'Microondas',     stock: 7,  reorden: 3 }
+  };
+
+  function render() {
+    const tbody = document.getElementById('tabla-inventario');
+    tbody.innerHTML = '';
+    let totalUnidades = 0;
+    let alertas = 0;
+
+    for (const clave in inventario) {
+      const p = inventario[clave];
+      totalUnidades += p.stock;
+
+      let estadoHTML;
+      if (p.stock === 0) {
+        estadoHTML = '<span class="estado agotado">Agotado</span>';
+        alertas++;
+      } else if (p.stock <= p.reorden) {
+        estadoHTML = '<span class="estado bajo">Bajo</span>';
+        alertas++;
+      } else {
+        estadoHTML = '<span class="estado ok">Disponible</span>';
+      }
+
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td>${p.nombre}</td>
+        <td><span class="stock-num">${p.stock}</span> unidades</td>
+        <td>${p.reorden} unidades</td>
+        <td>${estadoHTML}</td>
+      `;
+      tbody.appendChild(fila);
+    }
+
+    document.getElementById('total-unidades').textContent = totalUnidades;
+    document.getElementById('total-productos').textContent = Object.keys(inventario).length;
+    document.getElementById('total-alertas').textContent = alertas;
+  }
+
+  let toastTimer;
+  function avisar(msg, tipo = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + tipo;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.className = 'toast ' + tipo, 2600);
+  }
+
+  function movimiento(tipo) {
+    const clave = document.getElementById('producto').value;
+    const cant = parseInt(document.getElementById('cantidad').value);
+    const p = inventario[clave];
+
+    if (isNaN(cant) || cant <= 0) {
+      avisar('Ingresá una cantidad válida mayor a cero.', 'error');
+      return;
+    }
+
+    if (tipo === 'entrada') {
+      p.stock += cant;
+      avisar(`Entrada registrada: ${cant} ${p.nombre.toLowerCase()}. Stock: ${p.stock}.`, 'success');
+    } else {
+      if (cant > p.stock) {
+        avisar(`No hay stock suficiente. Disponible: ${p.stock}.`, 'error');
+        return;
+      }
+      p.stock -= cant;
+      avisar(`Salida registrada: ${cant} ${p.nombre.toLowerCase()}. Stock: ${p.stock}.`);
+    }
+
+    render();
+  }
+
+  render();
+</script>
+
+</body>
+</html>
